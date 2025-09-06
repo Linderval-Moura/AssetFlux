@@ -1,16 +1,28 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import { ImagesModule } from './images/images.module';
-import { UsersModule } from './users/users.module';
 import { UsersModule } from './users/users.module';
 import { ImagesModule } from './images/images.module';
-import { AuthModule } from './auth/auth.module';
+import { ProvidersModule } from './providers.module';
+import { ProvidersMockModule } from './providers.mock.module';
+
+const imports = [
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: '.env',
+  }),
+  AuthModule,
+  UsersModule,
+  ImagesModule,
+];
+
+if (process.env.NODE_ENV === 'test') {
+  imports.push(ProvidersMockModule);
+} else {
+  imports.push(ProvidersModule);
+}
 
 @Module({
-  imports: [AuthModule, UsersModule, ImagesModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: imports,
 })
 export class AppModule {}

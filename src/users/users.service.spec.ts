@@ -1,18 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
+import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UsersRepository } from './users.repository';
+import * as bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
 
-describe('UsersService', () => {
-  let service: UsersService;
+@Injectable()
+export class UsersService {
+  constructor(private usersRepository: UsersRepository) {}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService],
-    }).compile();
+  async create(createUserDto: CreateUserDto) {
+    const { name, email, password } = createUserDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = {
+      userId: uuid(),
+      name,
+      email,
+      password: hashedPassword,
+    };
+    
+    return this.usersRepository.create(user);
+  }
 
-    service = module.get<UsersService>(UsersService);
-  });
+  async findByEmail(email: string) {
+    return this.usersRepository.findByEmail(email);
+  }
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-});
+  async findById(id: string) {
+    return this.usersRepository.findById(id);
+  }
+}

@@ -1,26 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException  } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UsersRepository } from './users.repository';
+import * as bcrypt from 'bcryptjs';
+import { v4 as uuid } from 'uuid';
+import { User } from './interfaces/user.interface';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(private usersRepository: UsersRepository) {}
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const existingUser = await this.usersRepository.findByEmail(createUserDto.email);
+    
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists.');
+    }
+
+    const { name, email, password } = createUserDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser: User = {
+      userId: uuid(),
+      name,
+      email,
+      password: hashedPassword,
+    };
+
+    return this.usersRepository.create(newUser);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findByEmail(email);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async findById(userId: string): Promise<User | null> {
+    return this.usersRepository.findById(userId);
   }
 }
