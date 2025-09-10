@@ -93,6 +93,29 @@ Se você quiser usar os provedores de mock (sem conexão com a AWS), execute:
 $ npm run start:local
 ```
 
+## Docker
+
+Para rodar a aplicação em um container Docker, siga os passos abaixo:
+
+### Pré-requisito
+
+Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/) instalado em sua máquina.
+
+### Passo a Passo
+
+1.  **Construa a imagem Docker:**
+    Este comando irá compilar o `Dockerfile` e criar uma imagem com o nome `anjun25-compassstore`.
+    ```bash
+    $ npm run docker:build
+    ```
+2.  **Execute o container:**
+    Este comando inicia o container, mapeia a porta `3000` do container para a sua máquina local e injeta as variáveis de ambiente do seu arquivo `.env`.
+    ```bash
+    $ npm run docker:run
+    ```
+    Sua API estará acessível em `http://localhost:3000`.
+
+
 ## Rotas da API
 
 Para testar a aplicação, use o [Insomnia](https://insomnia.rest/download) ou o [Postman](https://www.postman.com/downloads/).
