@@ -1,9 +1,18 @@
-/node_modules
-/.pnp
-.pnp.js
+node_modules/
 
-/coverage
+dist/
+.tsbuildinfo
+.vscode/
 
-/dist
+coverage/
+*.spec.ts
 
 .env
+.env.example
+.gitignore
+
+npm-debug.log
+npm-error.log
+
+.pnp.cjs
+.pnp.loader.mjs
