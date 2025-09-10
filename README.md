@@ -111,6 +111,12 @@ Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/)
 2.  **Execute o container:**
     Este comando inicia o container, mapeia a porta `3000` do container para a sua máquina local e injeta as variáveis de ambiente do seu arquivo `.env`.
     ```bash
+    $ export PROVIDER_ACCESS_KEY_ID="seu_valor"
+    $ export PROVIDER_SECRET_ACCESS_KEY="seu_valor"
+    $ export PROVIDER_BUCKET="seu_valor"
+    $ export JWT_SECRET="seu_valor"
+    $ export AWS_SESSION_TOKEN="seu_valor"
+
     $ npm run docker:run
     ```
     Sua API estará acessível em `http://localhost:3000`.
