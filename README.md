@@ -57,19 +57,19 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 3.  Configure as variáveis de ambiente:
 
       * Crie um arquivo `.env` na raiz do projeto.
-      * Preencha-o com as suas credenciais da AWS e o nome do bucket.
+      * Preencha-o com as suas credenciais da AWS e o nome do bucket, tudo sem as aspas "".
 
     <!-- end list -->
 
     ```env
     PORT=3000 # Ou a que desejar
-    DATABASE_URL="sua_URL_DynamoDB"
+    DATABASE_URL=sua_URL_DynamoDB
 
-    PROVIDER_ACCESS_KEY_ID="sua_chave_de_acesso"
-    PROVIDER_SECRET_ACCESS_KEY="sua_chave_de_acesso_secreta"
-    PROVIDER_BUCKET="nome-do-seu-bucket-s3"
+    PROVIDER_ACCESS_KEY_ID=sua_chave_de_acesso
+    PROVIDER_SECRET_ACCESS_KEY=sua_chave_de_acesso_secreta
+    PROVIDER_BUCKET=nome-do-seu-bucket-s3
 
-    JWT_SECRET="sua_chave_secreta_longa_e_unica"
+    JWT_SECRET=sua_chave_secreta_longa_e_unica
     ```
 
 4.  Configure as tabelas do DynamoDB e o bucket do S3:
