@@ -9,6 +9,8 @@ const awsProvider: Provider[] = [
     useFactory: (configService: ConfigService) => {
       const config: S3ClientConfig = {
         region: 'us-east-1',
+        endpoint: configService.get('S3_ENDPOINT'),
+        forcePathStyle: true,
         credentials: {
           accessKeyId: configService.getOrThrow<string>('PROVIDER_ACCESS_KEY_ID'),
           secretAccessKey: configService.getOrThrow<string>('PROVIDER_SECRET_ACCESS_KEY'),
@@ -30,6 +32,7 @@ const awsProvider: Provider[] = [
           secretAccessKey: configService.getOrThrow<string>('PROVIDER_SECRET_ACCESS_KEY'),
           sessionToken: configService.getOrThrow<string>('AWS_SESSION_TOKEN'),
         },
+        endpoint: configService.getOrThrow<string>('DATABASE_URL'),
       };
 
       return new DynamoDBClient(config);

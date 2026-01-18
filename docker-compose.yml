@@ -1,0 +1,44 @@
+services:
+  # Aplicação NestJS
+  app:
+    build: .
+    container_name: compass-store-app
+    ports:
+      - "3000:3000"
+    env_file: .env
+    depends_on:
+      - dynamodb-local
+      - localstack
+    networks:
+      - compass-network
+
+  # DynamoDB Local
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    volumes:
+      - ./docker/dynamodb:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+    networks:
+      - compass-network
+
+  # LocalStack (para simular o S3)
+  localstack:
+    image: localstack/localstack
+    container_name: localstack-s3
+    ports:
+      - "4566:4566"            # Porta padrão do LocalStack
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=us-east-1
+    volumes:
+      - "./docker/localstack:/var/lib/localstack"
+    networks:
+      - compass-network
+
+networks:
+  compass-network:
+    driver: bridge
