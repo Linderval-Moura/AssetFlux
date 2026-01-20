@@ -126,29 +126,45 @@ Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/)
     Sua API estará acessível em `http://localhost:3000` ou no que definiu na variável PORT em .env.
 
 3.  **Configuração Inicial dos Serviços:**
-    Como o ambiente local é efêmero, você deve criar o bucket e a tabela manualmente na primeira execução.
+    Como o ambiente local é efêmero, você deve criar o bucket manualmente na primeira execução.
 
     * Criar Bucket no S3 (LocalStack):
     ```bash
     $ docker exec -it localstack-s3 awslocal s3 mb s3://seu-bucket-name
     ```
-    Criar Tabela Images com GSI (DynamoDB): 
+    
+4.  **🗄️ Database Initialization:** 
+    você deve criar as tabelas manualmente na primeira execução ou caso os volumes do Docker sejam resetados. 
+    * Execute os comandos abaixo no terminal do seu Linux:
 
-    * Este comando cria a tabela com a chave primária e o índice userId-name-index necessário para deleção:
+    #### 4.1. Criar Tabela `Users`, responsável pelo armazenamento de credenciais e perfis de usuário.
     ```bash
-    $ aws dynamodb create-table \
-    --endpoint-url http://localhost:8000 \
-    --table-name Images \
-    --attribute-definitions \
-        AttributeName=userId,AttributeType=S \
-        AttributeName=createdAt,AttributeType=S \
-        AttributeName=name,AttributeType=S \
-    --key-schema \
-        AttributeName=userId,KeyType=HASH \
-        AttributeName=createdAt,KeyType=RANGE \
-    --global-secondary-indexes \
-        "[{\"IndexName\": \"userId-name-index\", \"KeySchema\": [{\"AttributeName\": \"userId\", \"KeyType\": \"HASH\"}, {\"AttributeName\": \"name\", \"KeyType\": \"RANGE\"}], \"Projection\": {\"ProjectionType\": \"ALL\"}, \"ProvisionedThroughput\": {\"ReadCapacityUnits\": 5, \"WriteCapacityUnits\": 5}}]" \
-    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+    aws dynamodb create-table \
+        --endpoint-url http://localhost:8000 \
+        --table-name Users \
+        --attribute-definitions \
+            AttributeName=email,AttributeType=S \
+        --key-schema \
+            AttributeName=email,KeyType=HASH \
+        --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+    ```
+
+    #### 4.2. Criar Tabela Images com GSI (DynamoDB).
+    * Tabela para metadados de arquivos. Inclui um Global Secondary Index (GSI) essencial para a funcionalidade de deleção por nome.
+    ```bash
+    aws dynamodb create-table \
+        --endpoint-url http://localhost:8000 \
+        --table-name Images \
+        --attribute-definitions \
+            AttributeName=userId,AttributeType=S \
+            AttributeName=createdAt,AttributeType=S \
+            AttributeName=name,AttributeType=S \
+        --key-schema \
+            AttributeName=userId,KeyType=HASH \
+            AttributeName=createdAt,KeyType=RANGE \
+        --global-secondary-indexes \
+            "[{\"IndexName\": \"userId-name-index\", \"KeySchema\": [{\"AttributeName\": \"userId\", \"KeyType\": \"HASH\"}, {\"AttributeName\": \"name\", \"KeyType\": \"RANGE\"}], \"Projection\": {\"ProjectionType\": \"ALL\"}, \"ProvisionedThroughput\": {\"ReadCapacityUnits\": 5, \"WriteCapacityUnits\": 5}}]" \
+        --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
     ```
 
 
