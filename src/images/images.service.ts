@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException  } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { DynamoDBClient, PutItemCommand, QueryCommand, DeleteItemCommand, AttributeValue } from '@aws-sdk/client-dynamodb';
 import { ConfigService } from '@nestjs/config';
@@ -12,6 +12,7 @@ import { Image } from './interfaces/image.interface';
 @Injectable()
 export class ImagesService {
   private readonly s3BucketName: string;
+  private readonly s3AssetUrl: string;
   private readonly dynamoDbTableName = 'Images';
 
   constructor(
@@ -19,144 +20,158 @@ export class ImagesService {
     @Inject(DynamoDBClient) private dynamoDbClient: DynamoDBClient,
     private configService: ConfigService,
   ) {
-    const bucketName = this.configService.get<string>('PROVIDER_BUCKET');
-    if (!bucketName) {
-      throw new Error('PROVIDER_BUCKET environment variable is not defined.');
-    }
-    this.s3BucketName = bucketName;
+    this.s3BucketName = this.configService.getOrThrow<string>('PROVIDER_BUCKET');
+    this.s3AssetUrl = this.configService.getOrThrow<string>('S3_ASSET_URL');
   }
 
   async uploadFile(userId: string, file: Express.Multer.File): Promise<{ url: string }> {
-    const uniqueFileName = `${uuid()}-${file.originalname}`;
-    const s3Command = new PutObjectCommand({
-      Bucket: this.s3BucketName,
-      Key: uniqueFileName,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    });
+    try {
+      const uniqueFileName = `${uuid()}-${file.originalname}`;
 
-    await this.s3Client.send(s3Command);
+      const s3Command = new PutObjectCommand({
+        Bucket: this.s3BucketName,
+        Key: uniqueFileName,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      });
 
-    const imageUrl = `https://${this.s3BucketName}.s3.amazonaws.com/${uniqueFileName}`;
-    const newImage: Image = {
-      imageId: uuid(),
-      userId,
-      name: file.originalname,
-      s3Key: uniqueFileName,
-      url: imageUrl,
-      createdAt: new Date().toISOString(),
-    };
+      await this.s3Client.send(s3Command);
 
-    const dynamoDbCommand = new PutItemCommand({
-      TableName: this.dynamoDbTableName,
-      Item: marshall(newImage, { removeUndefinedValues: true }),
-    });
+      const imageUrl = `${this.s3AssetUrl}/${this.s3BucketName}/${uniqueFileName}`;
 
-    await this.dynamoDbClient.send(dynamoDbCommand);
-    return { url: imageUrl };
+      const newImage: Image = {
+        imageId: uuid(),
+        userId,
+        name: file.originalname,
+        s3Key: uniqueFileName,
+        url: imageUrl,
+        createdAt: new Date().toISOString(),
+      };
+
+      const dynamoDbCommand = new PutItemCommand({
+        TableName: this.dynamoDbTableName,
+        Item: marshall(newImage, { removeUndefinedValues: true }),
+      });
+
+      await this.dynamoDbClient.send(dynamoDbCommand);
+      return { url: imageUrl };
+    } catch (error) {
+      console.error('Failed to upload file to AWS services:', error);
+      throw new InternalServerErrorException('An error occurred while uploading your image.');
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async listImages(userId: string, name?: string, page: number = 1, limit: number = 10): Promise<Image[]> {
-    const params: {
-      TableName: string;
-      IndexName: string;
-      KeyConditionExpression: string;
-      ExpressionAttributeValues: { [key: string]: AttributeValue };
-      ScanIndexForward: boolean;
-      FilterExpression?: string;
-      ExpressionAttributeNames?: { [key: string]: string };
-    } = {
-      TableName: this.dynamoDbTableName,
-      IndexName: 'userId-createdAt-index',
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': { S: userId },
-      },
-      ScanIndexForward: false,
-    };
+    try {
+      const params: {
+        TableName: string;
+        KeyConditionExpression: string;
+        ExpressionAttributeValues: { [key: string]: AttributeValue };
+        ScanIndexForward: boolean;
+        FilterExpression?: string;
+        ExpressionAttributeNames?: { [key: string]: string };
+      } = {
+        TableName: this.dynamoDbTableName,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': { S: userId },
+        },
+        ScanIndexForward: false,
+      };
 
-    if (name) {
-      params.FilterExpression = 'begins_with(#name, :name)';
-      params.ExpressionAttributeNames = { '#name': 'name' };
-      params.ExpressionAttributeValues[':name'] = { S: name };
+      if (name) {
+        params.FilterExpression = 'begins_with(#name, :name)';
+        params.ExpressionAttributeNames = { '#name': 'name' };
+        params.ExpressionAttributeValues[':name'] = { S: name };
+      }
+
+      const result = await this.dynamoDbClient.send(new QueryCommand(params));
+
+      return result.Items?.map(item => unmarshall(item) as Image) || [];    
+    } catch (error) {
+      console.error('Error listing images in DynamoDB:', error);
+      throw new InternalServerErrorException('The image list could not be loaded.');
     }
-
-    const result = await this.dynamoDbClient.send(new QueryCommand(params));
-
-    return result.Items?.map(item => unmarshall(item) as Image) || [];
   }
 
   async deleteImage(userId: string, name: string) {
-    const queryCommand = new QueryCommand({
-      TableName: this.dynamoDbTableName,
-      IndexName: 'userId-name-index',
-      KeyConditionExpression: 'userId = :userId AND #name = :name',
-      ExpressionAttributeNames: { '#name': 'name' },
-      ExpressionAttributeValues: {
-        ':userId': { S: userId },
-        ':name': { S: name },
-      },
-    });
+    try {
+      const queryCommand = new QueryCommand({
+        TableName: this.dynamoDbTableName,
+        IndexName: 'userId-name-index',
+        KeyConditionExpression: 'userId = :userId AND #name = :name',
+        ExpressionAttributeNames: { '#name': 'name' },
+        ExpressionAttributeValues: {
+          ':userId': { S: userId },
+          ':name': { S: name },
+        },
+      });
 
-    const { Items } = await this.dynamoDbClient.send(queryCommand);
-    if (!Items || Items.length === 0) {
-      throw new NotFoundException('Image not found or you do not have permission to delete it.');
+      const { Items } = await this.dynamoDbClient.send(queryCommand);
+      
+      if (!Items || Items.length === 0) {
+        throw new NotFoundException('Image not found or you do not have permission to delete it.');
+      }
+
+      const image = unmarshall(Items[0]) as Image;
+
+      await this.s3Client.send(new DeleteObjectCommand({
+        Bucket: this.s3BucketName,
+        Key: image.s3Key,
+      }));
+
+      await this.dynamoDbClient.send(new DeleteItemCommand({
+        TableName: this.dynamoDbTableName,
+        Key: marshall({
+          userId: image.userId,
+          createdAt: image.createdAt,
+        }),
+      }));
+      
+      return { message: 'Image deleted successfully' };    
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error('Error deleting image:', error);
+      throw new InternalServerErrorException('Internal error while trying to delete the image.');
     }
-
-    const image = unmarshall(Items[0]) as Image;
-
-    const s3Command = new DeleteObjectCommand({
-      Bucket: this.s3BucketName,
-      Key: image.s3Key,
-    });
-
-    await this.s3Client.send(s3Command);
-
-    const dynamoDbCommand = new DeleteItemCommand({
-      TableName: this.dynamoDbTableName,
-      Key: marshall({
-        userId: image.userId,
-        createdAt: image.createdAt,
-      }),
-    });
-    
-    await this.dynamoDbClient.send(dynamoDbCommand);
-    
-    return { message: 'Image deleted successfully' };
   }
 
   async exportImagesToCsv(userId: string): Promise<PassThrough> {
-    const queryCommand = new QueryCommand({
-      TableName: this.dynamoDbTableName,
-      IndexName: 'userId-createdAt-index',
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': { S: userId },
-      },
-    });
+    try {
+      const queryCommand = new QueryCommand({
+        TableName: this.dynamoDbTableName,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': { S: userId },
+        },
+      });
 
-    const { Items } = await this.dynamoDbClient.send(queryCommand);
+      const { Items } = await this.dynamoDbClient.send(queryCommand);
 
-    const stringifier = stringify({
-      header: true,
-      columns: [
-        { key: 'name', header: 'Nome' },
-        { key: 'url', header: 'URL Remota' },
-        { key: 'createdAt', header: 'Data de Criação' },
-      ],
-    } as StringifyOptions);
+      const stringifier = stringify({
+        header: true,
+        columns: [
+          { key: 'name', header: 'Name' },
+          { key: 'url', header: 'Remote URL' },
+          { key: 'createdAt', header: 'Creation Date' },
+        ],
+      } as StringifyOptions);
 
-    const passThrough = new PassThrough();
-    stringifier.pipe(passThrough);
+      const passThrough = new PassThrough();
+      stringifier.pipe(passThrough);
 
-    if (Items) { 
-      const data = Items.map(item => unmarshall(item) as Image);
-      data.forEach(row => stringifier.write(row));
+      if (Items) { 
+        const data = Items.map(item => unmarshall(item) as Image);
+        data.forEach(row => stringifier.write(row));
+      }
+      
+      stringifier.end();
+
+      return passThrough;
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      throw new InternalServerErrorException('Could not generate the CSV report.');
     }
-    
-    stringifier.end();
-
-    return passThrough;
   }
 }

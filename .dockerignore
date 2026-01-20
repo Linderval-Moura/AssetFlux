@@ -4,11 +4,14 @@ dist/
 .tsbuildinfo
 .vscode/
 
+docker/
+
 coverage/
 *.spec.ts
 
 .env
 .env.example
+.git
 .gitignore
 
 npm-debug.log

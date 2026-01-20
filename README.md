@@ -56,19 +56,29 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 
 3.  Configure as variáveis de ambiente:
 
-      * Crie um arquivo `.env` na raiz do projeto.
-      * Preencha-o com as suas credenciais da AWS e o nome do bucket, tudo sem as aspas "".
+      * Copie o arquivo de exemplo e preencha os valores (o arquivo .dockerignore já está configurado para proteger seu .env):
 
     <!-- end list -->
 
     ```env
     PORT=3000 # Ou a que desejar
-    DATABASE_URL=sua_URL_DynamoDB
+
+    DATABASE_URL=sua_URL_DynamoDB # OU     
+    DATABASE_URL=http://dynamodb-local:8000 # para comunicação interna Docker.
 
     PROVIDER_ACCESS_KEY_ID=sua_chave_de_acesso
     PROVIDER_SECRET_ACCESS_KEY=sua_chave_de_acesso_secreta
+    AWS_REGION=
+    
+    S3_ENDPOINT=http://localstack:4566 #docker s3 da aws
+
+    S3_ASSET_URL=http://localhost:4566 #para desenvolvimento local.
+
+    # Na AWS, o padrão é https://nome-do-bucket.s3.amazonaws.com
+    #S3_ASSET_URL=https://nome-do-seu-bucket-real.s3.amazonaws.com
     PROVIDER_BUCKET=nome-do-seu-bucket-s3
 
+    AWS_SESSION_TOKEN=
     JWT_SECRET=sua_chave_secreta_longa_e_unica
     ```
 
@@ -108,18 +118,54 @@ Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/)
     ```bash
     $ npm run docker:build
     ```
-2.  **Execute o container:**
-    Este comando inicia o container, mapeia a porta `3000` do container para a sua máquina local e injeta as variáveis de ambiente do seu arquivo `.env`.
+2.  **Subir Infraestrutura (Docker):**
+    Este comando inicia a API, o DynamoDB Local e o LocalStack (S3):
     ```bash
-    $ export PROVIDER_ACCESS_KEY_ID="seu_valor"
-    $ export PROVIDER_SECRET_ACCESS_KEY="seu_valor"
-    $ export PROVIDER_BUCKET="seu_valor"
-    $ export JWT_SECRET="seu_valor"
-    $ export AWS_SESSION_TOKEN="seu_valor"
-
-    $ npm run docker:run
+    $ docker compose up -d
     ```
-    Sua API estará acessível em `http://localhost:3000`.
+    Sua API estará acessível em `http://localhost:3000` ou no que definiu na variável PORT em .env.
+
+3.  **Configuração Inicial dos Serviços:**
+    Como o ambiente local é efêmero, você deve criar o bucket manualmente na primeira execução.
+
+    * Criar Bucket no S3 (LocalStack):
+    ```bash
+    $ docker exec -it localstack-s3 awslocal s3 mb s3://seu-bucket-name
+    ```
+    
+4.  **🗄️ Database Initialization:** 
+    você deve criar as tabelas manualmente na primeira execução ou caso os volumes do Docker sejam resetados. 
+    * Execute os comandos abaixo no terminal do seu Linux:
+
+    #### 4.1. Criar Tabela `Users`, responsável pelo armazenamento de credenciais e perfis de usuário.
+    ```bash
+    aws dynamodb create-table \
+        --endpoint-url http://localhost:8000 \
+        --table-name Users \
+        --attribute-definitions \
+            AttributeName=email,AttributeType=S \
+        --key-schema \
+            AttributeName=email,KeyType=HASH \
+        --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+    ```
+
+    #### 4.2. Criar Tabela Images com GSI (DynamoDB).
+    * Tabela para metadados de arquivos. Inclui um Global Secondary Index (GSI) essencial para a funcionalidade de deleção por nome.
+    ```bash
+    aws dynamodb create-table \
+        --endpoint-url http://localhost:8000 \
+        --table-name Images \
+        --attribute-definitions \
+            AttributeName=userId,AttributeType=S \
+            AttributeName=createdAt,AttributeType=S \
+            AttributeName=name,AttributeType=S \
+        --key-schema \
+            AttributeName=userId,KeyType=HASH \
+            AttributeName=createdAt,KeyType=RANGE \
+        --global-secondary-indexes \
+            "[{\"IndexName\": \"userId-name-index\", \"KeySchema\": [{\"AttributeName\": \"userId\", \"KeyType\": \"HASH\"}, {\"AttributeName\": \"name\", \"KeyType\": \"RANGE\"}], \"Projection\": {\"ProjectionType\": \"ALL\"}, \"ProvisionedThroughput\": {\"ReadCapacityUnits\": 5, \"WriteCapacityUnits\": 5}}]" \
+        --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+    ```
 
 
 ## Rotas da API
@@ -145,10 +191,6 @@ $ npm run test
 # Testes com cobertura
 $ npm run test:cov
 ```
-
-## Docker
-
-Em breve irei construir um `Dockerfile` que gere a imagem da aplicação, seguindo boas práticas.
 
 ## Licença
 
