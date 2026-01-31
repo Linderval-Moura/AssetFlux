@@ -180,9 +180,12 @@ Para testar a aplicação, use o [Insomnia](https://insomnia.rest/download) ou o
   * `DELETE /images/:name`: Deletar imagem (requer JWT)
   * `GET /images/export`: Exportar dados para CSV (requer JWT)
 
-## Testes
+## 🧪 Testes Automatizados
+O projeto conta com uma pirâmide de testes completa para garantir a confiabilidade da lógica e da integração com a nuvem AWS.
 
-O projeto exige uma cobertura de 90% de testes unitários. Para rodar os testes, use:
+#### 1. Testes Unitários
+
+Focam na lógica isolada de serviços e controladores. O projeto exige e mantém uma cobertura mínima de 90%. Para rodar os testes, use:
 
 ```bash
 # Rodar todos os testes
@@ -191,6 +194,36 @@ $ npm run test
 # Testes com cobertura
 $ npm run test:cov
 ```
+
+### 🛠️ Configuração para Testes E2E
+
+Para rodar os testes de ponta a ponta sem interferir no seu ambiente de desenvolvimento, utilize o arquivo .env.test na raiz do projeto.
+
+#### Exemplo de .env.test:
+```bash
+PORT=3000
+DATABASE_URL=http://localhost:8000
+S3_ENDPOINT=http://localhost:4566
+S3_ASSET_URL=http://localhost:4566
+PROVIDER_ACCESS_KEY_ID=test
+PROVIDER_SECRET_ACCESS_KEY=test
+AWS_SESSION_TOKEN=test
+PROVIDER_BUCKET=bucket-name-compassstore
+JWT_SECRET=test-secret-key
+```
+
+#### 2. Testes E2E (End-to-End)
+Validam o fluxo completo da aplicação, desde a requisição HTTP até a persistência real no S3 (LocalStack) e DynamoDB Local.
+
+Os testes E2E são idempotentes: eles preparam automaticamente o ambiente, criando o bucket necessário no LocalStack antes da execução.
+```bash
+# Garantir que a infraestrutura Docker está rodando
+$ docker compose up -d
+
+# Executar a suite de testes E2E
+$ NODE_ENV=test npm run test:e2e
+```
+
 
 ## Licença
 
