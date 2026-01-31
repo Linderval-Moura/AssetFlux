@@ -6,23 +6,16 @@ import { ImagesModule } from './images/images.module';
 import { ProvidersModule } from './providers.module';
 import { ProvidersMockModule } from './providers.mock.module';
 
-const imports = [
-  ConfigModule.forRoot({
-    isGlobal: true,
-    envFilePath: '.env',
-  }),
-  AuthModule,
-  UsersModule,
-  ImagesModule,
-];
-
-if (process.env.NODE_ENV === 'test') {
-  imports.push(ProvidersMockModule);
-} else {
-  imports.push(ProvidersModule);
-}
-
 @Module({
-  imports: imports,
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    }),
+    AuthModule,
+    UsersModule,
+    ImagesModule,
+    process.env.NODE_ENV === 'test' ? ProvidersMockModule : ProvidersModule,
+  ],
 })
 export class AppModule {}
