@@ -1,7 +1,7 @@
 {
-  "name": "anjun25-d03-compassstore",
+  "name": "assetflux",
   "version": "0.0.1",
-  "description": "",
+  "description": "High-performance Digital Asset Management API powered by AWS & NestJS",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -19,8 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:build": "docker buildx build -t anjun25-compassstore . --load --build-arg PROVIDER_ACCESS_KEY_ID=$PROVIDER_ACCESS_KEY_ID --build-arg PROVIDER_SECRET_ACCESS_KEY=$PROVIDER_SECRET_ACCESS_KEY --build-arg PROVIDER_BUCKET=$PROVIDER_BUCKET --build-arg JWT_SECRET=$JWT_SECRET --build-arg AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN",
-    "docker:run": "docker run -p 3000:3000 --env-file ./.env anjun25-compassstore"
+    "docker:build": "docker buildx build -t assetflux . --load --build-arg PROVIDER_ACCESS_KEY_ID=$PROVIDER_ACCESS_KEY_ID --build-arg PROVIDER_SECRET_ACCESS_KEY=$PROVIDER_SECRET_ACCESS_KEY --build-arg PROVIDER_BUCKET=$PROVIDER_BUCKET --build-arg JWT_SECRET=$JWT_SECRET --build-arg AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN",
+    "docker:run": "docker run -p 3000:3000 --env-file ./.env assetflux"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.882.0",

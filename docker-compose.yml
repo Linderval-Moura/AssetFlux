@@ -1,8 +1,8 @@
 services:
-  # Aplicação NestJS
+  # App NestJS
   app:
     build: .
-    container_name: compass-store-app
+    container_name: assetflux-app
     ports:
       - "3000:3000"
     env_file: .env
@@ -25,12 +25,12 @@ services:
     networks:
       - compass-network
 
-  # LocalStack (para simular o S3)
+  # LocalStack "S3 Local"
   localstack:
     image: localstack/localstack
     container_name: localstack-s3
     ports:
-      - "4566:4566"            # Porta padrão do LocalStack
+      - "4566:4566"
     environment:
       - SERVICES=s3
       - DEFAULT_REGION=us-east-1

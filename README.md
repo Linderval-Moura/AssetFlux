@@ -1,17 +1,54 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<div align="center">
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+  <h1>⚡ AssetFlux</h1>
 
-# ANJUN25\_D03\_COMPASSSTORE: API de Uploads com AWS
+  <p>
+    <strong> High-performance Digital Asset Management API powered by AWS & NestJS.</strong>
+  </p>
 
-## Descrição do Projeto
+  <p>
+    <a href="https://nestjs.com/" target="blank"><img src="https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Logo" /></a>
+    <a href="https://aws.amazon.com/" target="blank"><img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white" alt="AWS Logo" /></a>
+    <a href="https://www.typescriptlang.org/" target="blank"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript Logo" /></a>
+    <a href="https://www.docker.com/" target="blank"><img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Logo" /></a>
+  </p>
+
+</div>
+
+<br />
+
+O **AssetFlux** é uma solução de engenharia de backend focada no processamento, armazenamento e distribuição segura de ativos digitais em escala.
+
+## 🏗️ Arquitetura
+
+```mermaid
+graph LR
+    A[Insomnia] -->|1. JWT Auth| B(NestJS API)
+    B -->|2. Buffer| C{Pipe Validation}
+    C -->|3. Success| D[Images Service]
+    D -->|4. Store| E[(Amazon S3)]
+    D -->|5. Metadata| F[(DynamoDB)]
+
+    style B fill:#e0234e,color:#fff
+    style E fill:#232f3e,color:#fff
+    style F fill:#232f3e,color:#fff 
+```
+
+## 📝 Descrição do Projeto
 
 Este projeto é uma API RESTful desenvolvida com **NestJS** e **TypeScript** que permite aos usuários se registrarem, fazerem login e gerenciarem uploads de imagens. Todas as imagens são armazenadas no **Amazon S3**, enquanto os metadados são salvos no **Amazon DynamoDB**. A aplicação foi projetada com foco em performance e escalabilidade.
 
-## Funcionalidades Principais
+## 💡 Decisões de Engenharia
+
+Este projeto foi arquitetado simulando um ambiente de **Digital Experience (DX)** de alta escala. As principais escolhas técnicas foram:
+
+* **NestJS**: Escolhido pela arquitetura modular e injeção de dependência, facilitando a manutenção e testes em times grandes.
+* **Amazon DynamoDB**: Utilizado para armazenar metadados devido à sua baixa latência e capacidade de escalabilidade horizontal (Serverless), ideal para catálogos de ativos massivos.
+* **Amazon S3**: Padrão de indústria para armazenamento de objetos (Object Storage), garantindo durabilidade e disponibilidade dos assets.
+* **Docker & LocalStack**: Implementados para garantir que o ambiente de desenvolvimento seja idêntico ao de produção, eliminando o problema de "funciona na minha máquina".
+
+
+## ✨ Funcionalidades Principais
 
   * **Autenticação de Usuário**:
       * **Cadastro**: Criação de novos usuários com nome, e-mail e senha.
@@ -22,16 +59,30 @@ Este projeto é uma API RESTful desenvolvida com **NestJS** e **TypeScript** que
       * **Exclusão de Imagens**: Deleta uma imagem tanto do S3 quanto do DynamoDB, garantindo que apenas o proprietário possa fazer a exclusão.
       * **Exportação de Dados**: Gera e exporta um arquivo CSV com o nome, URL remota e data de criação das imagens do usuário.
 
-## Tecnologias e Ferramentas
+## 🛠️ Tecnologias e Ferramentas
 
   * **Framework**: [NestJS](https://nestjs.com/)
   * **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
   * **Banco de Dados**: [Amazon DynamoDB](https://aws.amazon.com/dynamodb/)
   * **Armazenamento de Arquivos**: [Amazon S3](https://aws.amazon.com/s3/)
 
-## Instalação e Configuração
+## 📂 Estrutura do Projeto
 
-### Pré-requisitos
+```text
+src/
+├── auth/           # Autenticação e Guards JWT
+├── common/         # Decorators e Filtros de Exceção Globais
+├── images/         # Domínio Principal (Upload, Listagem)
+│   ├── dto/        # Transfer Objects (Validação)
+│   ├── entities/   # Interfaces do DynamoDB
+│   └── images.service.ts
+├── main.ts         # Entry point
+└── app.module.ts   # Orquestração de Módulos
+```
+
+## ⚙️ Instalação e Configuração
+
+### Pré-requisitos📋
 
 Certifique-se de ter as seguintes ferramentas instaladas:
 
@@ -39,13 +90,13 @@ Certifique-se de ter as seguintes ferramentas instaladas:
   * [npm](https://www.npmjs.com/)
   * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
-### Passo a Passo
+### Passo a Passo🚀
 
 1.  Clone o repositório:
 
     ```bash
-    $ git clone https://github.com/SEU_USUARIO/ANJUN25_D03_COMPASSSTORE.git
-    $ cd ANJUN25_D03_COMPASSSTORE
+    $ git clone https://github.com/Linderval-Moura/AssetFlux.git
+    $ cd AssetFlux
     ```
 
 2.  Instale as dependências:
@@ -87,7 +138,7 @@ Certifique-se de ter as seguintes ferramentas instaladas:
       * Crie as tabelas `Users` e `Images` com os índices necessários no console da AWS.
       * Crie um bucket no S3 e configure a política de acesso público (somente leitura).
 
-### Executando o Projeto
+### Executando o Projeto▶️
 
 Para rodar o projeto em modo de desenvolvimento (com auto-reload):
 
@@ -103,15 +154,15 @@ Se você quiser usar os provedores de mock (sem conexão com a AWS), execute:
 $ npm run start:local
 ```
 
-## Docker
+## 🐳 Docker
 
 Para rodar a aplicação em um container Docker, siga os passos abaixo:
 
-### Pré-requisito
+### Pré-requisito📋
 
 Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/) instalado em sua máquina.
 
-### Passo a Passo
+### Passo a Passo👣
 
 1.  **Construa a imagem Docker:**
     Este comando irá compilar o `Dockerfile` e criar uma imagem com o nome `anjun25-compassstore`.
@@ -168,17 +219,19 @@ Certifique-se de ter o [Docker](https://www.docker.com/products/docker-desktop/)
     ```
 
 
-## Rotas da API
+## 🔌 API Endpoints
 
 Para testar a aplicação, use o [Insomnia](https://insomnia.rest/download) ou o [Postman](https://www.postman.com/downloads/).
 
-  * `POST /auth/register`: Cadastro de usuário
-  * `POST /auth/login`: Login e obtenção do token JWT
-  * `POST /images/upload`: Upload de imagem (requer JWT)
-  * `GET /images`: Listar imagens do usuário (requer JWT)
-  * `GET /images?name=...`: Buscar imagens por nome (requer JWT)
-  * `DELETE /images/:name`: Deletar imagem (requer JWT)
-  * `GET /images/export`: Exportar dados para CSV (requer JWT)
+| Método | Endpoint | Descrição | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/auth/register` | Criação de nova conta de usuário | ❌ |
+| `POST` | `/auth/login` | Autenticação e geração de JWT | ❌ |
+| `POST` | `/images/upload` | Upload de arquivo (JPG, PNG, WEBP) para S3 | ✅ |
+| `GET` | `/images` | Listagem paginada de imagens do usuário | ✅ |
+| `GET` | `/images?name=query` | Busca de imagens por nome parcial | ✅ |
+| `DELETE` | `/images/:name` | Remoção do ativo no S3 e metadados no DynamoDB | ✅ |
+| `GET` | `/images/export` | Download de relatório CSV dos ativos | ✅ |
 
 ## 🧪 Testes Automatizados
 O projeto conta com uma pirâmide de testes completa para garantir a confiabilidade da lógica e da integração com a nuvem AWS.
@@ -195,7 +248,7 @@ $ npm run test
 $ npm run test:cov
 ```
 
-### 🛠️ Configuração para Testes E2E
+### Configuração para Testes E2E🛠️
 
 Para rodar os testes de ponta a ponta sem interferir no seu ambiente de desenvolvimento, utilize o arquivo .env.test na raiz do projeto.
 
@@ -225,6 +278,6 @@ $ NODE_ENV=test npm run test:e2e
 ```
 
 
-## Licença
+## 📜 Licença
 
 Este projeto está sob a licença MIT.
