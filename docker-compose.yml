@@ -6,11 +6,16 @@ services:
     ports:
       - "3000:3000"
     env_file: .env
+    environment: 
+      - REDIS_HOST=redis
+      - DATABASE_URL=http://dynamodb-local:8000
+      - S3_ENDPOINT=http://localstack-s3:4566
     depends_on:
       - dynamodb-local
       - localstack
+      - redis
     networks:
-      - compass-network
+      - assetflux-network
 
   # DynamoDB Local
   dynamodb-local:
@@ -23,7 +28,7 @@ services:
       - ./docker/dynamodb:/home/dynamodblocal/data
     working_dir: /home/dynamodblocal
     networks:
-      - compass-network
+      - assetflux-network
 
   # LocalStack "S3 Local"
   localstack:
@@ -37,8 +42,17 @@ services:
     volumes:
       - "./docker/localstack:/var/lib/localstack"
     networks:
-      - compass-network
+      - assetflux-network
+    
+  # Cache Layer
+  redis:
+    image: redis:alpine
+    container_name: assetflux-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - assetflux-network
 
 networks:
-  compass-network:
+  assetflux-network:
     driver: bridge
