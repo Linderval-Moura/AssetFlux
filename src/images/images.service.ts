@@ -8,6 +8,8 @@ import { stringify } from 'csv-stringify';
 import { Options as StringifyOptions } from 'csv-stringify';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Image } from './interfaces/image.interface';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class ImagesService {
@@ -18,6 +20,7 @@ export class ImagesService {
   constructor(
     @Inject(S3Client) private s3Client: S3Client,
     @Inject(DynamoDBClient) private dynamoDbClient: DynamoDBClient,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private configService: ConfigService,
   ) {
     this.s3BucketName = this.configService.getOrThrow<string>('PROVIDER_BUCKET');
@@ -54,6 +57,9 @@ export class ImagesService {
       });
 
       await this.dynamoDbClient.send(dynamoDbCommand);
+
+      await this.cacheManager.del(`user_images:${userId}`);
+
       return { url: imageUrl };
     } catch (error) {
       console.error('Failed to upload file to AWS services:', error);
@@ -63,6 +69,16 @@ export class ImagesService {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async listImages(userId: string, name?: string, page: number = 1, limit: number = 10): Promise<Image[]> {
+    const cacheKey = `user_images:${userId}`;
+
+    if (!name) {
+      const cachedImages = await this.cacheManager.get<Image[]>(cacheKey);
+
+      if (cachedImages) {        
+        return cachedImages;
+      }
+    }
+
     try {
       const params: {
         TableName: string;
@@ -87,8 +103,13 @@ export class ImagesService {
       }
 
       const result = await this.dynamoDbClient.send(new QueryCommand(params));
+      const images = result.Items?.map(item => unmarshall(item) as Image) || [];
 
-      return result.Items?.map(item => unmarshall(item) as Image) || [];    
+      if (!name) {
+        await this.cacheManager.set(cacheKey, images);
+      }
+
+      return images; 
     } catch (error) {
       console.error('Error listing images in DynamoDB:', error);
       throw new InternalServerErrorException('The image list could not be loaded.');
@@ -128,6 +149,8 @@ export class ImagesService {
           createdAt: image.createdAt,
         }),
       }));
+
+      await this.cacheManager.del(`user_images:${userId}`);
       
       return { message: 'Image deleted successfully' };    
     } catch (error) {
